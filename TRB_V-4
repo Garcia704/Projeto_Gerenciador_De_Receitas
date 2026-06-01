@@ -1,0 +1,398 @@
+//==========================================================================================================================================
+
+//4-Versão(Agora tem as classificações e as partes de editar e excluir agora estão n só separadas mas também melhora a edição da receita e outras melhorias.)
+
+//==========================================================================================================================================
+
+/* 
+   PROJETO: LIVRO DE RECEITAS DIGITAL
+   FUNCIONALIDADES: Menu Switch Case, Escritor Interativo (Setas/ESC) e CRUD Completo.
+*/
+
+/*
+
+1. Abrir e Fechar Arquivos:
+
+|FILE *fopen(const char *nome, const char *modo);: Abre um arquivo e retorna um ponteiro. Retorna NULL se falhar.
+|int fclose(FILE *ponteiro);: Fecha o arquivo, garantindo que os dados no buffer sejam gravados.
+
+Modos de abertura (modo):
+
+|"r": Abre para leitura (o arquivo deve existir).
+|"w": Cria um arquivo vazio para escrita (apaga o conteúdo se já existir).
+|"a": Abre para escrita no final do arquivo (append).
+|"r+", "w+", "a+": Modos de leitura/escrita.
+
+2. Leitura de Arquivos (Input):
+
+|int fgetc(FILE *ponteiro);: Lê um caractere por vez.
+|char *fgets(char *str, int num, FILE *ponteiro);: Lê uma linha inteira (ou string) de um arquivo.
+|int fscanf(FILE *ponteiro, const char *formato, ...);: Lê dados formatados, similar ao scanf.
+
+3. Escrita em Arquivos (Output):
+
+|int fputc(int caractere, FILE *ponteiro);: Escreve um caractere.
+|int fputs(const char *str, FILE *ponteiro);: Escreve uma string no arquivo.
+|int fprintf(FILE *ponteiro, const char *formato, ...);: Escreve dados formatados, similar ao printf.
+
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <conio.h>
+#include <windows.h>
+
+#define FILE_NAME "receitas.txt"
+#define TEMP_FILE "temp.txt"
+
+int main() {
+    // Configura o console para aceitar acentuação brasileira (UTF-8)
+    SetConsoleCP(65001);
+    SetConsoleOutputCP(65001);
+
+    int opcao;
+    char titulo[100], linha[255], busca[100], categoria[100], tempoFinal[100];
+    char conteudo[50][255]; 
+
+    do {
+        system("cls");
+        printf("=== LIVRO DE RECEITAS DIGITAL ===\n");
+        printf("1. Cadastrar Receita\n");
+        printf("2. Pesquisar Receita\n");
+        printf("3. Editar Receita\n");
+        printf("4. Excluir Receita\n");
+        printf("0. Sair\n");
+        printf("Escolha uma opção: ");
+        
+        if (scanf("%d", &opcao) != 1) { 
+            while (getchar() != '\n'); 
+            continue; 
+        }
+        while (getchar() != '\n'); 
+        system("cls");
+
+        switch (opcao) {
+            
+            // ====================================================================
+            // 1. CADASTRAR RECEITA
+            // ====================================================================
+            case 1:
+                printf("\nNome da Receita: ");
+                fgets(titulo, sizeof(titulo), stdin); 
+                titulo[strcspn(titulo, "\n")] = 0;
+
+                printf("Categorias (Sugestões: Salgado, Doce, Almoço, Janta, Lanche): ");
+                fgets(categoria, sizeof(categoria), stdin); 
+                categoria[strcspn(categoria, "\n")] = 0;
+                
+                // Formata categorias separando por vírgula se houver espaço
+                for(int i = 0; categoria[i]; i++) {
+                    if(categoria[i] == ' ') categoria[i] = ',';
+                }
+
+                char confTempo;
+                printf("Deseja inserir o tempo de preparo? (S/N): ");
+                scanf(" %c", &confTempo); 
+                while(getchar() != '\n');
+
+                if (toupper(confTempo) == 'S') {
+                    char raw[100]; 
+                    int h = 0, m = 0;
+                    printf("Digite o tempo (Ex: 1h 30min): "); 
+                    fgets(raw, sizeof(raw), stdin);
+                    for(int i = 0; raw[i]; i++) raw[i] = tolower(raw[i]);
+                    
+                    char *ph = strstr(raw, "h");
+                    char *pm = strstr(raw, "m");
+                    
+                    if(ph) { 
+                        char *p = ph - 1; 
+                        while(p >= raw && isdigit(*p)) p--; 
+                        h = atoi(p + 1); 
+                    }
+                    if(pm) { 
+                        char *p = pm - 1; 
+                        while(p >= raw && isdigit(*p)) p--; 
+                        m = atoi(p + 1); 
+                    }
+                    sprintf(tempoFinal, "Em média: %dh %dmin", h, m);
+                } else {
+                    strcpy(tempoFinal, "Em média: Não informado");
+                }
+
+                // ESCRITOR INTERATIVO (SETAS + EDIÇÃO)
+                int l_cad = 0, c_cad = 0, pos_c = 0; 
+                char ch_cad;
+                for(int i = 0; i < 50; i++) memset(conteudo[i], 0, 255);
+
+                printf("\n--- MODO ESCRITOR (Pressione ESC para salvar e sair) ---\n");
+                while ((ch_cad = getch()) != 27) {
+                    // TRATAMENTO DE SETAS
+                    if (ch_cad == 0 || (unsigned char)ch_cad == 224) {
+                        char seta = getch();
+                        switch(seta) {
+                            case 75: // ESQUERDA
+                                if (pos_c > 0) { pos_c--; printf("\033[D"); }
+                                break;
+                            case 77: // DIREITA
+                                if (pos_c < (int)strlen(conteudo[l_cad])) { pos_c++; printf("\033[C"); }
+                                break;
+                            case 72: // CIMA
+                                if (l_cad > 0) {
+                                    l_cad--; printf("\033[A");
+                                    int tam_n = strlen(conteudo[l_cad]);
+                                    if (pos_c > tam_n) pos_c = tam_n;
+                                    printf("\r");
+                                    for(int i = 0; i < pos_c; i++) printf("\033[C");
+                                }
+                                break;
+                            case 80: // BAIXO
+                                if (l_cad < 49 && strlen(conteudo[l_cad+1]) >= 0) {
+                                    l_cad++; printf("\033[B");
+                                    int tam_n = strlen(conteudo[l_cad]);
+                                    if (pos_c > tam_n) pos_c = tam_n;
+                                    printf("\r");
+                                    for(int i = 0; i < pos_c; i++) printf("\033[C");
+                                }
+                                break;
+                        }
+                        continue;
+                    }
+
+                    if (ch_cad == 13 && l_cad < 49) { // ENTER
+                        l_cad++; pos_c = 0; printf("\n");
+                    } 
+                    else if (ch_cad == 8) { // BACKSPACE(deletar)
+                        if (pos_c > 0) {
+                            int tam = strlen(conteudo[l_cad]);
+                            for (int i = pos_c - 1; i < tam; i++) conteudo[l_cad][i] = conteudo[l_cad][i+1];
+                            pos_c--;
+                            printf("\b\033[s%s \033[u", &conteudo[l_cad][pos_c]); 
+                        } else if (l_cad > 0) {
+                            l_cad--; pos_c = strlen(conteudo[l_cad]);
+                            printf("\033[A\r");
+                            for(int i = 0; i < pos_c; i++) printf("\033[C");
+                        }
+                    } 
+                    else if (isprint(ch_cad) || (unsigned char)ch_cad > 127) { // CARACTERES
+                        int tam = strlen(conteudo[l_cad]);
+                        if (tam < 254) {
+                            for (int i = tam; i > pos_c; i--) conteudo[l_cad][i] = conteudo[l_cad][i-1];
+                            conteudo[l_cad][pos_c] = ch_cad;
+                            printf("\033[s%s\033[u\033[C", &conteudo[l_cad][pos_c]); 
+                            pos_c++;
+                        }
+                    }
+                }
+
+                printf("\n\nConfirmar salvamento? (S/N): ");
+                if (toupper(getch()) == 'S') {
+                    FILE *f = fopen(FILE_NAME, "a");
+                    fprintf(f, "[%s]\nMETA|%s|%s\n", titulo, categoria, tempoFinal);
+                    for(int i = 0; i <= l_cad; i++) {
+                        if(strlen(conteudo[i]) > 0) fprintf(f, "%s\n", conteudo[i]);
+                    }
+                    fprintf(f, "[TERMINO]\n");
+                    fclose(f);
+                    printf("\nSalvo com sucesso!");
+                }
+                getch();
+                break;
+
+            // ====================================================================
+            // 2. PESQUISAR RECEITA
+            // ====================================================================
+            case 2:
+                {
+                    FILE *f = fopen(FILE_NAME, "r");
+                    if (!f) { printf("\nNenhuma receita encontrada."); 
+                    getch(); 
+                    break; 
+                    }
+                    printf("\n              ======= Formas de Pesquisar =======\n");
+                    printf("\nPesquisar usando o Nome da receita.");
+                    printf("\nPesquisar usando as Categorias da receita como: Salgado, Doce, Almoço, Janta, Lanche).");
+                    printf("\nTambém pode apertar ENTER para ver todas as opções de receitas enúmeradas.");
+                    printf("\nBuscar: ");
+                    fgets(busca, sizeof(busca), stdin); busca[strcspn(busca, "\n")] = 0;
+                    
+                    char nomesEnc[50][100];
+                    int totalEnc = 0;
+                    system("cls");
+                    while (fgets(linha, 255, f)) {
+                        if (linha[0] == '[' && !strstr(linha, "[TERMINO]")) {
+                            char tA[100];
+                            strcpy(tA, linha + 1); tA[strcspn(tA, "]\n")] = 0;
+                            
+                            // Lógica de busca multi-termo
+                            char meta[255], tudo[400];
+                            fgets(meta, 255, f);
+                            sprintf(tudo, "%s %s", tA, meta);
+                            for(int i=0; tudo[i]; i++) tudo[i] = tolower(tudo[i]);
+                            
+                            if (strstr(tudo, busca)) {
+                                strcpy(nomesEnc[totalEnc++], tA);
+                                printf("%d. %s\n", totalEnc, tA);
+                            }
+                        }
+                    }
+                    if (totalEnc > 0) {
+                        int esc; printf("\nNúmero para abrir: "); 
+                        scanf("%d", &esc);
+                        system("cls");
+                        if (esc > 0 && esc <= totalEnc) {
+                            rewind(f);
+                            int exibindo = 0;
+                            while(fgets(linha, 255, f)) {
+                                if(strstr(linha, nomesEnc[esc-1]) && linha[0] == '[') exibindo = 1;
+                                if(exibindo) {
+                                    if(strstr(linha, "[TERMINO]")) break;
+                                    if(strstr(linha, "META|")) printf("Info: %s", linha+5);
+                                    else printf("%s", linha);
+                                }
+                            }
+                        }
+                    } else printf("\nNada encontrado.");
+                    fclose(f); getch();
+                }
+                break;
+
+            // ====================================================================
+            // 3. EDITAR RECEITA
+            // ====================================================================
+            case 3:
+                {
+                    FILE *f_edit = fopen(FILE_NAME, "r");
+                    if (!f_edit) { printf("\nArquivo vazio."); getch(); break; }
+                    char nomes[50][100], tagAlvo[110], metaAntiga[255];
+                    int total = 0, escolha;
+                    while (fgets(linha, sizeof(linha), f_edit)) {
+                        if (linha[0] == '[' && !strstr(linha, "[TERMINO]")) {
+                            char tempN[100]; strcpy(tempN, linha + 1); tempN[strcspn(tempN, "]\n")] = 0;
+                            strcpy(nomes[total++], tempN); printf("%d. %s\n", total, nomes[total-1]);
+                        }
+                    }
+                    fclose(f_edit);
+                    if (total == 0) { getch(); break; }
+                    printf("\nNúmero (0 cancela): "); scanf("%d", &escolha); while(getchar() != '\n');
+                    if (escolha < 1 || escolha > total) break;
+                    sprintf(tagAlvo, "[%s]", nomes[escolha-1]);
+
+                    f_edit = fopen(FILE_NAME, "r");
+                    while(fgets(linha, sizeof(linha), f_edit)) {
+                        char tL[110]; strcpy(tL, linha); tL[strcspn(tL, "\n")] = 0;
+                        if(strcmp(tL, tagAlvo) == 0) { fgets(metaAntiga, sizeof(metaAntiga), f_edit); break; }
+                    }
+                    fclose(f_edit);
+
+                    printf("\nNovo Nome (Vazio mantém anterior): ");
+                    fgets(titulo, 100, stdin); titulo[strcspn(titulo, "\n")] = 0;
+                    if(strlen(titulo) == 0) strcpy(titulo, nomes[escolha-1]);
+
+                    printf("Novas Categorias (Vazio mantém anterior): ");
+                    fgets(categoria, 100, stdin); categoria[strcspn(categoria, "\n")] = 0;
+                    if(strlen(categoria) == 0) {
+                        char mC[255]; strcpy(mC, metaAntiga+5); char *tok = strtok(mC, "|"); if(tok) strcpy(categoria, tok);
+                    } else for(int i=0; categoria[i]; i++) if(categoria[i] == ' ') categoria[i] = ',';
+
+                    char confT[10]; printf("Alterar tempo? (S/N): "); fgets(confT, 10, stdin);
+                    if (toupper(confT[0]) == 'S') {
+                        char raw[100]; int nh=0, nm=0;
+                        printf("Tempo: "); fgets(raw, 100, stdin);
+                        for(int i=0; raw[i]; i++) raw[i] = tolower(raw[i]);
+                        char *ph = strstr(raw, "h"), *pm = strstr(raw, "m");
+                        if(ph) { char *p = ph-1; while(p >= raw && isdigit(*p)) p--; nh = atoi(p+1); }
+                        if(pm) { char *p = pm-1; while(p >= raw && isdigit(*p)) p--; nm = atoi(p+1); }
+                        sprintf(tempoFinal, "Em média: %dh %dmin", nh, nm);
+                    } else { char *ptr = strrchr(metaAntiga, '|'); if(ptr) { strcpy(tempoFinal, ptr+1); tempoFinal[strcspn(tempoFinal, "\n")] = 0; } }
+
+                    int l_ed = 0; for(int i=0; i<50; i++) memset(conteudo[i], 0, 255);
+                    f_edit = fopen(FILE_NAME, "r");
+                    while(fgets(linha, sizeof(linha), f_edit)) {
+                        char tL[110]; strcpy(tL, linha); tL[strcspn(tL, "\n")] = 0;
+                        if(strcmp(tL, tagAlvo) == 0) {
+                            fgets(linha, 255, f_edit);
+                            while(fgets(linha, 255, f_edit) && !strstr(linha, "[TERMINO]")) {
+                                linha[strcspn(linha, "\n")] = 0; strcpy(conteudo[l_ed++], linha);
+                            }
+                            break;
+                        }
+                    }
+                    fclose(f_edit);
+
+                    char confC[10]; printf("Editar conteúdo? (S/N): "); fgets(confC, 10, stdin);
+                    if (toupper(confC[0]) == 'S') {
+                        for(int i=0; i<l_ed; i++) printf("%d. %s\n", i+1, conteudo[i]);
+                        printf("Qual linha? "); int nL; scanf("%d", &nL); while(getchar() != '\n');
+                        if(nL > 0 && nL <= l_ed) { printf("Novo texto: "); fgets(conteudo[nL-1], 255, stdin); conteudo[nL-1][strcspn(conteudo[nL-1], "\n")] = 0; }
+                    }
+
+                    printf("\nConfirmar alterações? (S/N): ");
+                    if (toupper(getch()) == 'S') {
+                        FILE *fin = fopen(FILE_NAME, "r"), *fout = fopen(TEMP_FILE, "w");
+                        int pulando = 0;
+                        while(fgets(linha, 255, fin)) {
+                            char l_l[110]; strcpy(l_l, linha); l_l[strcspn(l_l, "\n")] = 0;
+                            if(strcmp(l_l, tagAlvo) == 0) {
+                                pulando = 1; fprintf(fout, "[%s]\nMETA|%s|%s\n", titulo, categoria, tempoFinal);
+                                for(int i=0; i<50; i++) if(strlen(conteudo[i])>0) fprintf(fout, "%s\n", conteudo[i]);
+                                fprintf(fout, "[TERMINO]\n");
+                            }
+                            if(!pulando) fputs(linha, fout);
+                            if(pulando && strstr(linha, "[TERMINO]")) pulando = 0;
+                        }
+                        fclose(fin); fclose(fout); remove(FILE_NAME); rename(TEMP_FILE, FILE_NAME);
+                        printf("\nSalvo!");
+                    }
+                    getch();
+                }
+                break;
+
+            // ====================================================================
+            // 4. EXCLUIR RECEITA
+            // ====================================================================
+            case 4:
+                {
+                    FILE *f_exc = fopen(FILE_NAME, "r");
+                    if (!f_exc) { printf("\nArquivo vazio."); getch(); break; }
+                    char nomes[50][100]; int total = 0;
+                    while (fgets(linha, sizeof(linha), f_exc)) {
+                        if (linha[0] == '[' && !strstr(linha, "[TERMINO]")) {
+                            char tempN[100]; strcpy(tempN, linha + 1); tempN[strcspn(tempN, "]\n")] = 0;
+                            strcpy(nomes[total++], tempN); printf("%d. %s\n", total, nomes[total-1]);
+                        }
+                    }
+                    fclose(f_exc);
+                    int esc; printf("\nExcluir qual? (0 cancela): "); scanf("%d", &esc); while(getchar() != '\n');
+                    if (esc > 0 && esc <= total) {
+                        printf("Excluir '%s'? (S/N): ", nomes[esc-1]);
+                        if (toupper(getch()) == 'S') {
+                            f_exc = fopen(FILE_NAME, "r"); FILE *t = fopen(TEMP_FILE, "w");
+                            char tag[110]; sprintf(tag, "[%s]", nomes[esc-1]);
+                            int pulando = 0;
+                            while(fgets(linha, 255, f_exc)) {
+                                char linL[110]; strcpy(linL, linha); linL[strcspn(linL, "\n")] = 0;
+                                if(strcmp(linL, tag) == 0) pulando = 1;
+                                if(!pulando) fputs(linha, t);
+                                if(pulando && strstr(linha, "[TERMINO]")) pulando = 0;
+                            }
+                            fclose(f_exc); fclose(t); remove(FILE_NAME); rename(TEMP_FILE, FILE_NAME);
+                            printf("\nExcluído!");
+                        }
+                    }
+                    getch();
+                }
+                break;
+                
+            case 0:
+                printf("\nSaindo do sistema...");
+                break;
+        }
+    } while (opcao != 0);
+
+    return 0;
+}
+
+
