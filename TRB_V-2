@@ -1,0 +1,179 @@
+//==========================================================================================================================================
+
+//2-Versão(já permite editar uma linha escrita anteriormente e permite visualizar as linhas enumeradas, permitindo escolher qual linha vc quer mudar).
+
+//==========================================================================================================================================
+/* Codigo de projeto para um livro de receitas virtual onde permite acentos e salvar com titulos a receita
+e depois editar ou excluir. Tudo sendo salvo em um arquivo texto.*/
+
+/*
+
+1. Abrir e Fechar Arquivos:
+
+|FILE *fopen(const char *nome, const char *modo);: Abre um arquivo e retorna um ponteiro. Retorna NULL se falhar.
+|int fclose(FILE *ponteiro);: Fecha o arquivo, garantindo que os dados no buffer sejam gravados.
+
+Modos de abertura (modo):
+
+|"r": Abre para leitura (o arquivo deve existir).
+|"w": Cria um arquivo vazio para escrita (apaga o conteúdo se já existir).
+|"a": Abre para escrita no final do arquivo (append).
+|"r+", "w+", "a+": Modos de leitura/escrita.
+
+2. Leitura de Arquivos (Input):
+
+|int fgetc(FILE *ponteiro);: Lê um caractere por vez.
+|char *fgets(char *str, int num, FILE *ponteiro);: Lê uma linha inteira (ou string) de um arquivo.
+|int fscanf(FILE *ponteiro, const char *formato, ...);: Lê dados formatados, similar ao scanf.
+
+3. Escrita em Arquivos (Output):
+
+|int fputc(int caractere, FILE *ponteiro);: Escreve um caractere.
+|int fputs(const char *str, FILE *ponteiro);: Escreve uma string no arquivo.
+|int fprintf(FILE *ponteiro, const char *formato, ...);: Escreve dados formatados, similar ao printf.
+
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <conio.h>
+#include <windows.h>
+
+void exibirMenu() {
+    printf("\n--- MENU BLOCO DE NOTAS ---\n");
+    printf("1 - Salvar nova nota\n");
+    printf("2 - Ler todas as notas\n");
+    printf("3 - Pesquisar na nota\n");
+    printf("4 - Excluir uma linha\n");
+    printf("5 - Editar uma linha\n");
+    printf("0 - Sair\n");
+    printf("Opção: ");
+}
+
+int main() {
+    
+    // Configuração para acentos funcionarem no Windows e no arquivo .txt
+    SetConsoleCP(65001);
+    SetConsoleOutputCP(65001);
+
+    int opcao;
+    char buffer[250];
+
+    system("cls");
+    exibirMenu();
+    scanf("%d", &opcao);
+
+    while (opcao != 0) {
+        switch (opcao) {
+            case 1: { // SALVAR NOVA NOTA
+                FILE *file = fopen("notas.txt", "a");
+                if (file == NULL) {
+                    printf("Erro ao abrir arquivo!\n");
+                } else {
+                    printf("\n--- MODO ESCRIBA ---\n");
+                    printf("Digite seu texto. Para salvar, digite 'SAIR' sozinho em uma linha.\n\n");
+                    getchar(); // Limpa o buffer do scanf
+
+                    while (1) {
+                        fgets(buffer, sizeof(buffer), stdin);
+                        // Verifica se digitou SAIR para fechar
+                        if (strcmp(buffer, "SAIR\n") == 0 || strcmp(buffer, "SAIR\r\n") == 0) break;
+                        fputs(buffer, file);
+                    }
+                    fclose(file);
+                    printf("\nTexto salvo com sucesso!\n");
+                }
+            } break;
+
+            case 2: { // LER NOTAS
+                FILE *file = fopen("notas.txt", "r");
+                int contador = 1;
+                if (file == NULL) printf("\nArquivo vazio ou não encontrado.\n");
+                else {
+                    printf("\n--- CONTEÚDO DO ARQUIVO ---\n");
+                    while (fgets(buffer, sizeof(buffer), file)) {
+                        printf("[%d] %s", contador++, buffer);
+                    }
+                    fclose(file);
+                }
+            } break;
+
+            case 3: { // PESQUISAR
+                FILE *file = fopen("notas.txt", "r");
+                char pesq[50];
+                if (file == NULL) printf("\nErro: arquivo não existe.\n");
+                else {
+                    printf("Digite o que deseja buscar: ");
+                    scanf("%s", pesq);
+                    int achou = 0;
+                    while (fgets(buffer, sizeof(buffer), file)) {
+                        if (strstr(buffer, pesq)) {
+                            printf("Encontrado: %s", buffer);
+                            achou = 1;
+                        }
+                    }
+                    if (!achou) printf("Nenhum resultado para '%s'.\n", pesq);
+                    fclose(file);
+                }
+            } break;
+
+            case 4: // EXCLUIR
+            case 5: { // EDITAR
+                FILE *file = fopen("notas.txt", "r");
+                if (file == NULL) { printf("\nArquivo não encontrado.\n"); break; }
+
+                // Exibe as linhas atuais para escolha
+                printf("\n--- SELECIONE A LINHA ---\n");
+                int total = 1;
+                while (fgets(buffer, sizeof(buffer), file)) printf("[%d] %s", total++, buffer);
+                rewind(file);
+
+                int linhaAlvo, linhaAtual = 1;
+                char confirma;
+
+                printf("\nNúmero da linha para %s: ", (opcao == 4 ? "EXCLUIR" : "EDITAR"));
+                scanf("%d", &linhaAlvo);
+                printf("Tem certeza que deseja prosseguir? (s/n): ");
+                getchar();
+                confirma = getchar();
+
+                if (confirma == 's' || confirma == 'S') {
+                    FILE *temp = fopen("temp.txt", "w");
+                    while (fgets(buffer, sizeof(buffer), file)) {
+                        if (linhaAtual == linhaAlvo) {
+                            if (opcao == 5) {
+                                printf("Digite o novo conteúdo da linha %d: ", linhaAlvo);
+                                getchar(); // Limpa buffer antes do novo texto
+                                fgets(buffer, sizeof(buffer), stdin);
+                                fputs(buffer, temp);
+                            }
+                            // Se for opção 4, ele apenas pula a escrita (exclui)
+                        } else {
+                            fputs(buffer, temp);
+                        }
+                        linhaAtual++;
+                    }
+                    fclose(file); fclose(temp);
+                    remove("notas.txt");
+                    rename("temp.txt", "notas.txt");
+                    printf("Operação concluída com sucesso!\n");
+                } else {
+                    printf("Operação cancelada.\n");
+                    fclose(file);
+                }
+            } break;
+
+            default: printf("\nOpção inválida!\n");
+        }
+
+        printf("\nPressione qualquer tecla para voltar ao menu...");
+        getch();
+        system("cls");
+        exibirMenu();
+        scanf("%d", &opcao);
+    }
+
+    printf("\nSaindo do Bloco de Notas...");
+    return 0;
+}
