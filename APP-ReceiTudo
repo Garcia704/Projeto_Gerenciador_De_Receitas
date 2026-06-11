@@ -50,7 +50,7 @@ void habilitar_ansi() {
 void cabecalho() {
     printf(AMARELO NEGRITO);
     printf("  ╔══════════════════════════════════════════╗\n");
-    printf("  ║       GERENCIADOR DE RECEITAS  v10.0     ║\n");
+    printf("  ║                ReceiTudo                 ║\n");
     printf("  ╚══════════════════════════════════════════╝\n");
     printf(RESET);
 }
@@ -209,7 +209,7 @@ void buscar_receitas(){
                                     if(strstr(linha, "[TERMINO]"))
                                     break;
                                     if(strstr(linha, "META|")) {
-                                    printf(NEGRITO"Info: %s"RESET, linha+5);
+                                    printf(NEGRITO"Categoria: %s"RESET, linha+5);
                                     printf(MAGENTA NEGRITO"\n---Conteúdo da receita.---\n"RESET);
                                 }else{
                                     SetConsoleCP(1252);
@@ -923,8 +923,9 @@ int main() {
         cabecalho();
 
         printf("\n");
-    printf(NEGRITO "    ===== LIVRO DE RECEITAS DIGITAL =====\n" RESET);
-    printf(DIM "  ─────────────────────────────────────────\n" RESET);
+    //printf(AMARELO NEGRITO"  v10.0\n"RESET);
+    printf(NEGRITO"  ====== LIVRO DE RECEITAS DIGITAL ======\n" RESET);
+    printf(NEGRITO"  ─────────────────────────────────────────\n" RESET);
 
     printf("  " AMARELO "[1]" RESET " Cadastrar Receita\n");
     printf("  " AZUL   "[2]" RESET " Pesquisar Receitas\n");
@@ -932,7 +933,7 @@ int main() {
     printf("  " VERMELHO "[4]" RESET " Excluir Receita\n");
     printf("  " DIM    "[0]" RESET " Sair\n\n");
 
-    printf(DIM "  ─────────────────────────────────────────\n" RESET);
+    printf(NEGRITO "  ─────────────────────────────────────────\n" RESET);
     printf(NEGRITO"  Escolha:"RESET" "NEGRITO);
 
         if (scanf("%d", &opcao) != 1) { 
