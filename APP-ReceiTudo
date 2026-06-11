@@ -930,7 +930,6 @@ int main() {
     printf("  " AZUL   "[2]" RESET " Pesquisar Receitas\n");
     printf("  " VERDE  "[3]" RESET " Editar Receita\n");
     printf("  " VERMELHO "[4]" RESET " Excluir Receita\n");
-    printf("  " MAGENTA "[5]" RESET " Ainda nada...\n");
     printf("  " DIM    "[0]" RESET " Sair\n\n");
 
     printf(DIM "  ─────────────────────────────────────────\n" RESET);
@@ -1357,10 +1356,6 @@ int main() {
                     }
                 } while (escolha_excluir != 0);
                 }
-                break;
-            case 5:
-                printf(NEGRITO"Ainda não tem nada..."RESET);
-                getch();
                 break;
             case 0:
                 printf(NEGRITO"\nSaindo do sistema..."RESET);
